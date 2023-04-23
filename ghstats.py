@@ -5,6 +5,7 @@ import sys
 from datetime import datetime
 import matplotlib.pyplot as plt
 import pandas as pd
+import argparse
 
 
 GITHUB_API_TOKEN = os.environ["GITHUB_API_TOKEN"]
@@ -12,8 +13,8 @@ GITHUB_API_URL = "https://api.github.com/graphql"
 
 
 def get_github_users_info(usernames, from_date, to_date):
-    from_date_obj = datetime.strptime(from_date, "%Y-%m-%d").strftime("%Y-%m-%dT00:00:00Z")
-    to_date_obj = datetime.strptime(to_date, "%Y-%m-%d").strftime("%Y-%m-%dT23:59:59Z")
+    from_date_obj = from_date.strftime("%Y-%m-%dT00:00:00Z")
+    to_date_obj = to_date.strftime("%Y-%m-%dT23:59:59Z")
 
     users_info = []
 
@@ -221,20 +222,38 @@ def show_infos(users_info):
         print("\n==========================================================================================================")
 
 
-if __name__ == "__main__":
-    if len(sys.argv) != 4:
-        print("Usage: python ghstats.py <username> <from_date> <to_date>")
-        print("Dates should be in format: YYYY-MM-DD")
+def validate_date(date_string):
+    try:
+        return datetime.strptime(date_string, "%Y-%m-%d")
+    except ValueError:
+        raise argparse.ArgumentTypeError("Invalid date format. Dates should be in format: YYYY-MM-DD")
+
+
+def start(args):
+    try:
+        users_info = get_github_users_info(args.usernames, args.from_date, args.to_date)
+    except requests.exceptions.RequestException as e:
+        print(f"Error while connecting to the GitHub API: {e}")
+        sys.exit(1)
+    except KeyError as e:
+        print(f"Error while processing data: {e}")
         sys.exit(1)
 
-    usernames = sys.argv[1].split(",")
-    from_date = sys.argv[2]
-    to_date = sys.argv[3]
-
-    users_info = get_github_users_info(usernames, from_date, to_date)
-
-    #plot_contributions_by_type(users_info)
-    #plot_users_comparison(users_info)
-    show_infos(users_info)
+    if args.plot == "contributions":
+        plot_contributions_by_type(users_info)
+    elif args.plot == "comparison":
+        plot_users_comparison(users_info)
+    else:
+        show_infos(users_info)
 
 
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="GitHub user statistics.")
+    parser.add_argument("usernames", type=str, nargs="+", help="List of GitHub usernames (separated by spaces)")
+    parser.add_argument("--from_date", type=validate_date, required=True, help="Start date for the statistics (format: YYYY-MM-DD)")
+    parser.add_argument("--to_date", type=validate_date, required=True, help="End date for the statistics (format: YYYY-MM-DD)")
+    parser.add_argument("--plot", type=str, choices=["contributions", "comparison"], help="Choose the plotting method: 'contributions' or 'comparison'")
+
+    args = parser.parse_args()
+
+    start(args)
