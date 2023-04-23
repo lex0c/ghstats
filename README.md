@@ -12,7 +12,7 @@ pip install requests matplotlib pandas
 
 To use this script, you need to generate a [GitHub API token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token) with at least the repo and user scope
 
-`python ghstats.py [-h] [--from_date FROM_DATE] [--to_date TO_DATE] [--plot {contributions,comparison}] username [username ...]`
+`python ghstats.py [-h] [--from_date FROM_DATE] [--to_date TO_DATE] [--plot {contributions,comparison,repo_activity}] username [username ...]`
 
 example
 ```sh
@@ -26,7 +26,7 @@ GITHUB_API_TOKEN=<your_token_here> python ghstats.py user1 user2 user3 --from_da
 - `-h`, `--help`: Show the help message and exit.
 - `--from_date FROM_DATE`: The start date for the activity data in the format `YYYY-MM-DD`. Defaults to the first day of the current year.
 - `--to_date TO_DATE`: The end date for the activity data in the format `YYYY-MM-DD`. Defaults to the current date.
-- `--plot {contributions,comparison}`: Choose the plotting method. Available options are contributions and comparison. If this option is not provided, the script will display detailed user activity information in the console output.
+- `--plot {contributions,comparison,repo_activity}`: Choose the plotting method. Available options are contributions, comparison and repo_activity. If this option is not provided, the script will display detailed user activity information in the console output.
 
 ## Infos available
 

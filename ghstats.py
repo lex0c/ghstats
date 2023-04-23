@@ -181,6 +181,26 @@ def plot_users_comparison(users_info):
     plt.show()
 
 
+def plot_repository_activity(users_info):
+    for user_info in users_info:
+        repo_activity = {}
+
+        for repo in user_info["repositoriesContributedTo"]["nodes"]:
+            repo_name = repo["name"]
+            additions = repo["object"]["additions"]
+            deletions = repo["object"]["deletions"]
+            repo_activity[repo_name] = additions + deletions
+
+        labels = list(repo_activity.keys())
+        sizes = list(repo_activity.values())
+
+        fig, ax = plt.subplots()
+        ax.pie(sizes, labels=labels, autopct="%1.1f%%", startangle=90)
+        ax.set_title(f"Repository activity for {user_info['name'] or user_info['login']}")
+
+        plt.show()
+
+
 def show_infos(users_info):
     print(users_info)
 
@@ -243,6 +263,8 @@ def start(args):
         plot_contributions_by_type(users_info)
     elif args.plot == "comparison":
         plot_users_comparison(users_info)
+    elif args.plot == "repo_activity":
+        plot_repository_activity(users_info)
     else:
         show_infos(users_info)
 
@@ -252,7 +274,7 @@ if __name__ == "__main__":
     parser.add_argument("usernames", type=str, nargs="+", help="List of GitHub usernames (separated by spaces)")
     parser.add_argument("--from_date", type=validate_date, required=True, help="Start date for the statistics (format: YYYY-MM-DD)")
     parser.add_argument("--to_date", type=validate_date, required=True, help="End date for the statistics (format: YYYY-MM-DD)")
-    parser.add_argument("--plot", type=str, choices=["contributions", "comparison"], help="Choose the plotting method: 'contributions' or 'comparison'")
+    parser.add_argument("--plot", type=str, choices=["contributions", "comparison", "repo_activity"], help="Choose the plotting method: 'contributions', 'comparison', or 'repo_activity'")
 
     args = parser.parse_args()
 
