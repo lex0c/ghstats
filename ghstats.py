@@ -55,7 +55,7 @@ def get_github_users_info(usernames, from_date, to_date):
                         totalRepositoriesWithContributedPullRequestReviews
                         totalRepositoriesWithContributedPullRequests
                     }}
-                    repositoriesContributedTo(last: 5, includeUserRepositories: false) {{
+                    repositoriesContributedTo(last: 5, includeUserRepositories: true) {{
                         totalCount
                         nodes {{
                             name
@@ -63,6 +63,24 @@ def get_github_users_info(usernames, from_date, to_date):
                             createdAt
                             updatedAt
                             pushedAt
+                            object(expression: "main") {{
+                                ... on Commit {{
+                                    additions
+                                    deletions
+                                    history(first: 5) {{
+                                        totalCount
+                                        edges {{
+                                            node {{
+                                                message
+                                                author {{
+                                                    name
+                                                    date
+                                                }}
+                                            }}
+                                        }}
+                                    }}
+                                }}
+                            }}
                             owner {{
                                 login
                             }}
@@ -94,7 +112,7 @@ def get_github_users_info(usernames, from_date, to_date):
         headers = {"Authorization": f"Bearer {GITHUB_API_TOKEN}"}
         response = requests.post(GITHUB_API_URL, json={"query": query}, headers=headers)
 
-        if "errors" in response.json():
+        if not "data" in response.json():
             print(response.json())
             sys.exit(1)
 
@@ -102,25 +120,6 @@ def get_github_users_info(usernames, from_date, to_date):
         users_info.append(user_info)
 
     return users_info
-
-
-def plot_users_contributions_pie(users_info):
-    labels = []
-    sizes = []
-
-    for user_info in users_info:
-        username = user_info["name"]
-        total_contributions = user_info["contributionsCollection"]["contributionCalendar"]["totalContributions"]
-        labels.append(username)
-        sizes.append(total_contributions)
-
-    fig, ax = plt.subplots()
-    ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90)
-    ax.axis('equal')
-    ax.set(title='Contributions comparison')
-    handles, _ = ax.get_legend_handles_labels()
-    ax.legend(handles, labels, loc="best")
-    plt.show()
 
 
 def plot_contributions_by_type(users_info):
@@ -159,7 +158,31 @@ def plot_contributions_by_type(users_info):
     plt.show()
 
 
+def plot_users_comparison(users_info):
+    users = [user_info["name"] or user_info["login"] for user_info in users_info]
+
+    df = pd.DataFrame(columns=["User", "Additions", "Deletions"])
+
+    for user_info in users_info:
+        additions = 0
+        deletions = 0
+
+        for repo in user_info["repositoriesContributedTo"]["nodes"]:
+            additions += repo["object"]["additions"]
+            deletions += repo["object"]["deletions"]
+
+        df = pd.concat([df, pd.DataFrame({"User": user_info["name"] or user_info["login"], "Additions": additions, "Deletions": deletions}, index=[0])], ignore_index=True)
+
+    ax = df.plot.bar(x="User", y=["Additions", "Deletions"], rot=0)
+    ax.set_title("Code additions and deletions by user")
+    ax.set_xlabel("User")
+    ax.set_ylabel("Lines of code")
+    plt.show()
+
+
 def show_infos(users_info):
+    print(users_info)
+
     for user_info in users_info:
         print("==========================================================================================================\n")
         print(f"Name: {user_info['name']}")
@@ -185,10 +208,14 @@ def show_infos(users_info):
             repo['primaryLanguage'] = repo['primaryLanguage'] or {"name":"null"}
             print(f"- Name: {repo['name']}, Primary lang: {repo['primaryLanguage']['name']}, Created at: {repo['createdAt']}")
 
-        print("\nContributions (last 5):")
+        print(f"\nContributions (last 5 of {user_info['repositoriesContributedTo']['totalCount']}):")
         for rc in user_info["repositoriesContributedTo"]["nodes"]:
             rc['primaryLanguage'] = rc['primaryLanguage'] or {"name":"null"}
             print(f"- Name: {rc['name']}, Private: {rc['isPrivate']}, Primary lang: {rc['primaryLanguage']['name']}, Created at: {rc['createdAt']}, Last push: {rc['pushedAt']}, Owner: {rc['owner']['login']}")
+            print(f"    - Lines: +{rc['object']['additions']} -{rc['object']['deletions']}")
+            print(f"    - Commits (last 5):")
+            for commit in rc['object']['history']['edges']:
+                print(f"        - {commit['node']['message']} (author: {commit['node']['author']['name']}, {commit['node']['author']['date']})")
 
 
         print("\n==========================================================================================================")
@@ -205,7 +232,9 @@ if __name__ == "__main__":
     to_date = sys.argv[3]
 
     users_info = get_github_users_info(usernames, from_date, to_date)
+
     #plot_contributions_by_type(users_info)
+    #plot_users_comparison(users_info)
     show_infos(users_info)
 
 
