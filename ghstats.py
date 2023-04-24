@@ -2,10 +2,10 @@ import os
 import json
 import requests
 import sys
-from datetime import datetime
 import matplotlib.pyplot as plt
 import pandas as pd
 import argparse
+from datetime import datetime
 
 
 GITHUB_API_TOKEN = os.environ["GITHUB_API_TOKEN"]
@@ -159,24 +159,30 @@ def plot_contributions_by_type(users_info):
     plt.show()
 
 
-def plot_users_comparison(users_info):
-    users = [user_info["name"] or user_info["login"] for user_info in users_info]
-
-    df = pd.DataFrame(columns=["User", "Additions", "Deletions"])
+def plot_users_comparison_activity(users_info):
+    data = {"User": [], "Additions": [], "Deletions": []}
 
     for user_info in users_info:
+        username = user_info["login"]
         additions = 0
         deletions = 0
 
         for repo in user_info["repositoriesContributedTo"]["nodes"]:
+            if repo["object"] is None:
+                continue
+
             additions += repo["object"]["additions"]
             deletions += repo["object"]["deletions"]
 
-        df = pd.concat([df, pd.DataFrame({"User": user_info["name"] or user_info["login"], "Additions": additions, "Deletions": deletions}, index=[0])], ignore_index=True)
+        data["User"].append(username)
+        data["Additions"].append(additions)
+        data["Deletions"].append(deletions)
 
-    ax = df.plot.bar(x="User", y=["Additions", "Deletions"], rot=0)
+    df = pd.DataFrame(data)
+
+    ax = df.plot.bar(x="User", y=["Additions", "Deletions"], rot=45, figsize=(10, 7), color=["green", "red"])
     ax.set_title("Code additions and deletions by user")
-    ax.set_xlabel("User")
+    ax.set_xlabel("Users")
     ax.set_ylabel("Lines of code")
     plt.show()
 
@@ -197,7 +203,6 @@ def plot_repository_activity(users_info):
         fig, ax = plt.subplots()
         ax.pie(sizes, labels=labels, autopct="%1.1f%%", startangle=90)
         ax.set_title(f"Repository activity for {user_info['name'] or user_info['login']}")
-
         plt.show()
 
 
@@ -261,10 +266,10 @@ def start(args):
 
     if args.plot == "contributions":
         plot_contributions_by_type(users_info)
-    elif args.plot == "comparison":
-        plot_users_comparison(users_info)
-    elif args.plot == "repo_activity":
+    elif args.plot == "activity":
         plot_repository_activity(users_info)
+    elif args.plot == "comparison":
+        plot_users_comparison_activity(users_info)
     else:
         show_infos(users_info)
 
@@ -274,7 +279,7 @@ if __name__ == "__main__":
     parser.add_argument("usernames", type=str, nargs="+", help="List of GitHub usernames (separated by spaces)")
     parser.add_argument("--from_date", type=validate_date, required=True, help="Start date for the statistics (format: YYYY-MM-DD)")
     parser.add_argument("--to_date", type=validate_date, required=True, help="End date for the statistics (format: YYYY-MM-DD)")
-    parser.add_argument("--plot", type=str, choices=["contributions", "comparison", "repo_activity"], help="Choose the plotting method: 'contributions', 'comparison', or 'repo_activity'")
+    parser.add_argument("--plot", type=str, choices=["contributions", "activity", "comparison"], help="Choose the plotting method. If not provided, detailed user activity information will be displayed in the console output.")
 
     args = parser.parse_args()
 
