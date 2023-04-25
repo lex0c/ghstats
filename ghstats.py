@@ -152,7 +152,7 @@ def plot_contributions_by_type(users_info):
     ax.bar([i + width * 3 for i in x], review_contributions, width, label="Pull Request Reviews")
 
     ax.set_xticks([i + 1.5 * width for i in x])
-    ax.set_xticklabels(labels)
+    ax.set_xticklabels(labels, rotation=60)
     ax.set(title='Contributions by Type')
     ax.legend()
 
@@ -279,8 +279,9 @@ if __name__ == "__main__":
     parser.add_argument("usernames", type=str, nargs="+", help="List of GitHub usernames (separated by spaces)")
     parser.add_argument("--from_date", type=validate_date, required=True, help="Start date for the statistics (format: YYYY-MM-DD)")
     parser.add_argument("--to_date", type=validate_date, required=True, help="End date for the statistics (format: YYYY-MM-DD)")
-    parser.add_argument("--plot", type=str, choices=["contributions", "activity", "comparison"], help="Choose the plotting method. If not provided, detailed user activity information will be displayed in the console output.")
+    parser.add_argument("--plot", type=str, choices=["contributions", "comparison", "activity"], help="Choose the plotting method. If not provided, detailed user activity information will be displayed in the console output.")
 
     args = parser.parse_args()
 
     start(args)
+
