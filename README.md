@@ -62,8 +62,8 @@ The script retrieves the following information for each user:
 - Total Pull Request Review count
 - Issues (last 5)
 - Pull Requests (last 5)
-- Repositories (last 5 of the total count)
-- Contributions (last 5)
+- User Repositories (last 5 of the total count)
+- Contributions
 
 
 ## Develop

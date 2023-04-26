@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import argparse
 from datetime import datetime
+from dateutil.parser import parse
 
 
 GITHUB_API_TOKEN = os.environ["GITHUB_API_TOKEN"]
@@ -56,7 +57,7 @@ def get_github_users_info(usernames, from_date, to_date):
                         totalRepositoriesWithContributedPullRequestReviews
                         totalRepositoriesWithContributedPullRequests
                     }}
-                    repositoriesContributedTo(last: 5, includeUserRepositories: true) {{
+                    repositoriesContributedTo(last: 100, includeUserRepositories: false) {{
                         totalCount
                         nodes {{
                             name
@@ -159,7 +160,7 @@ def plot_contributions_by_type(users_info):
     plt.show()
 
 
-def plot_users_comparison_activity(users_info):
+def plot_users_comparison_activity(users_info, from_date, to_date):
     data = {"User": [], "Additions": [], "Deletions": []}
 
     for user_info in users_info:
@@ -168,6 +169,11 @@ def plot_users_comparison_activity(users_info):
         deletions = 0
 
         for repo in user_info["repositoriesContributedTo"]["nodes"]:
+            pushedAt = parse(repo["pushedAt"].replace("Z", ""))
+
+            if pushedAt < datetime.fromisoformat(str(from_date)) or pushedAt > datetime.fromisoformat(str(to_date)):
+                continue
+
             if repo["object"] is None:
                 continue
 
@@ -180,7 +186,7 @@ def plot_users_comparison_activity(users_info):
 
     df = pd.DataFrame(data)
 
-    ax = df.plot.bar(x="User", y=["Additions", "Deletions"], rot=45, figsize=(10, 7), color=["green", "red"])
+    ax = df.plot.bar(x="User", y=["Additions", "Deletions"], rot=45, figsize=(10, 7))
     ax.set_title("Code additions and deletions by user")
     ax.set_xlabel("Users")
     ax.set_ylabel("Lines of code")
@@ -269,7 +275,7 @@ def start(args):
     elif args.plot == "activity":
         plot_repository_activity(users_info)
     elif args.plot == "comparison":
-        plot_users_comparison_activity(users_info)
+        plot_users_comparison_activity(users_info, args.from_date, args.to_date)
     else:
         show_infos(users_info)
 
